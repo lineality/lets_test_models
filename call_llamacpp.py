@@ -1,49 +1,22 @@
 """
 
-This is part of a deliberately 'small' micro-operation
-to do a finite operation
-in a set of sets of operations
-in a structured externalized-tabular project-object-database format
+This is a utility wrapper to aid in calling llama.cpp
+from a python application for a single utility-task.
 
-this may not seem different from plum-pudding model output, but it is.
+The goal is not to emulate a pseudo-state-chat-api such 
+as open_AI, but to use a stateless local gguf model
+within an architecture that manages project-state.
+E.g. the differnces between this an Jan-AI's *Nitro*
+https://nitro.jan.ai/
 
-With this building block
-many modular avenues for doing task, and testing-benchmarking abilities, are opened up.
-Modular-recombinant processes.
+This (if still under-developed now) is designed 
+for more detailed configuration and manual processing.
 
+Note: 
+- gpu-configuration is pending.
+- embedding model support is pending
 
-Instructions:
-1. Install Jan and download some models
-2. Download any other models and put in the models folders in their own folders
-3. Use this from anywhere, putting in the path to the models' folder
-
-note:
-There is a function to tell you what gguf models you already have and can pick from
-You can use a shortened version of the model name.
- - get_model_path_by_name(base_path, model_name)
-
-
-Note:
-Context-history looks like a big mystery...
-
-TODO:
-
-fix broken skeleton structure:
-- 
-
-todo: make a cli_gguf.py version that takes
-parameters, e.g. taking pack-unpack as the input
-or otherwise normal input instructions.
-
-experiment with .csv format output
-
-
-
-
-
-add a chat_llamacapp.py
-
-using chat-context wrapper from Mixtral et all
+A version of this file may be called as "module_llama.cpp"
 
 """
 
@@ -1021,13 +994,203 @@ def set_translate__user_prompt(context_history, target_language, original_data):
     return context_history
 
 
-################
-################
-################
-################
-# Run & Testing
-################
-################
-################
-################
 
+
+if __name__ == "__main__":
+    # Code that should only run when the script is executed directly
+    print("This code will run only when the script is executed directly.")
+
+
+    ################
+    ################
+    ################
+    ################
+    # Run & Testing
+    ################
+    ################
+    ################
+    ################
+
+
+
+
+    """# json inspection"""
+    context_history = []
+
+
+    target_language = "Dutch"
+    original_data = "use the door"
+
+    conversation_history = set_translator__system_prompt(context_history, target_language)
+    conversation_history = set_translate__user_prompt(context_history, target_language, original_data)
+
+    # print(conversation_history)
+
+    # a local api function that acts like cloud api functions
+    # response = gguf_api(conversation_history, parameter_dict, configies_dict)
+
+
+
+    #######################
+    # Tune Your Paramaters
+    #######################
+    parameter_dict = {
+        "--temp": 0.8,  # (default value is 0.8)
+        "--top-k": 40,  # (selection among N most probable. default: 40)
+        "--top-p": 0.9,  # (probability above threshold P. default: 0.9)
+        "--min-p": 0.05,  # (minimum probability threshold. default: 0.05)
+        "--seed": -1,  # seed, =1 is random seed
+        "--tfs": 1,  # (tail free sampling with parameter z. default: 1.0) 1.0 = disabled
+        "--threads": 8,  # (~ set to number of physical CPU cores)
+        "--typical": 1,  # (locally typical sampling with parameter p  typical (also like ~Temperature) (default: 1.0, 1.0 = disabled).
+        "--mirostat": 2,  # (default: 0,  0= disabled, 1= Mirostat, 2= Mirostat 2.0)
+        "--mirostat-lr": 0.05,  # (Mirostat learning rate, eta.  default: 0.1)
+        "--mirostat-ent": 3.0,  # (Mirostat target entropy, tau.  default: 5.0)
+        "--ctx-size": 500,  # Sets the size of the prompt context
+    }
+
+
+
+    phrase = 'cat'
+    language = 'spanish'
+    conversation_history = f"""
+    translate only '{phrase}'' into {language} with the translation formatted
+    inside tripple pipes |||YOUR_TRANSLATION||| just that, no other commentary,
+    and earn a treat"""
+
+    conversation_history = f"""
+    give two number separated by pipes, answer <= 20 characters"""
+
+
+    conversation_history = f"""
+
+    Evaluate (Score 0-10) German translations for "Your ACCOUNT name": ["your_translation","Dein Benutzername"]
+
+    Score each (0-10) as being a good translation, then reply saying only |Score1|Score2|, no commentary please.
+    """
+
+    target_language = "German"
+    untranslated_leaf = "your account name"
+    dict_of_options = {"your_translation": "score_here", 
+                    "Dein Benutzername": "score_here"}
+
+    # dict_of_options = {
+    #     "Ihr_Kontenname": "score_here",
+    #     }     
+
+    answer_form = {
+        "translation-1": "score_here", 
+        "translation-2": "score_here",
+        "translation-3": "score_here"
+    }
+
+    """
+    Evaluate (0-10, 10 is great) each German translation for 'your account name' from these options: {'your_translation': 'score_here', 'Dein Benutzername': 'score_here'}. Place your evaluations as a value to the key in Json format. Return your properly formatted dict listing each translation only as t-number as: '''json {'t-1': 'score_here', 't-2': 'score_here', 't-3': 'score_here'} ''' No additional comments. A tasty reward awaits your accurate selection.
+    """
+
+    context_history = f"""
+    Evaluate (0-10, 0 is terrible, 10 is great) each {target_language} translation for '{untranslated_leaf}' from these options: {dict_of_options}. 
+    Place your evaluations as a value to the key in Json format. Return your markdown json object 
+    listing each translation only as t-number 
+    as: 
+    ```json 
+    {answer_form} 
+    ```
+    One key-value pair per translation (one key, one value -> "translation-1": "score_here", not nested). No additional comments. A tasty reward awaits your accurate selection."""
+
+    context_history = f"""
+    Evaluate (0-10, 0 is terrible, 10 is great) each {target_language} translation for '{untranslated_leaf}' from these options: {dict_of_options}. 
+    Place your evaluations as the value to a key in Json format. Return your markdown json object 
+    listing each translation only as t-number 
+    as: 
+    ```json 
+    {answer_form} 
+    ```
+    Just fill in the score, that's all. One key-value pair per translation (one generic key, one value which is your score -> "translation-1": "score_here", not nested). No additional comments. A tasty reward awaits your accurate selection.
+    """
+
+    context_history = f"""
+    translate only '{untranslated_leaf}' into {target_language} formatted 
+    inside tripple pipes |||your_translation||| just that. no other commentary,
+    translate and earn a treat: best translation is """
+
+    context_history = "translate only \'First Name\' into French formatted inside tripple pipes |||your_translation||| just that. no other commentary, translate and earn a treat: best translation is |||"
+
+
+    context_history = "For this origional task: 'Task: What is the capital of France?'. Evaluate only these 2 options: Option 1. The capital city of France is Paris.; Option 2. Capital City of France: Paris;. Place your evaluations (0-10, 0 is bad, 10 is good) as the value to a key in markdown ```json format. as: ```json {'option-1': 'score_here', 'option-2': 'score_here', 'option-3': 'score_here'} ``` Just fill in the score, that's all. One key-value pair per each of the 2 options (one key, one value. not nested; not everything in the original question. -> \"option-1\": \"your_score_here\", ). No additional comments. A tasty reward awaits your accurate markdown``` selection. ``json"
+
+
+    answer_form = {
+    "option-1": "score_here", 
+    "option-2": "score_here",
+    "option-3": "score_here"
+    }
+
+
+    task_summary = "Task: What is the capital of France?"
+    list_of_ranked_choice_options = [
+        "The capital city of France is Paris.",
+        "Capital City of France: Paris"
+    ]
+
+    context_history = f"""
+    For this original task: '{task_summary}'. Evaluate only these {len(list_of_ranked_choice_options)} 
+    options: {list_of_ranked_choice_options}. 
+    (0-10; 0 is bad, 10 is good) Place your evaluation of each as the value to a key in markdown json format. 
+    as:  
+    {answer_form} 
+
+    Just fill in the score, that's all. One key-value pair for each of the {len(list_of_ranked_choice_options)} 
+    evaluated options (one key, one value. not nested; 
+    not everything in the original question. -> "option-1": "your_score_here", ). 
+    No additional comments. A tasty reward awaits your accurate markdown selection. 
+    """
+
+    # context_history = f"""
+    # Let's answer in dictionary ```json ``` format between triple pips.
+    # For this original task: '{task_summary}'. Evaluate these {len(list_of_ranked_choice_options)} 
+    # options: {list_of_ranked_choice_options}. 
+    # (0-10; 0 is bad, 10 is good) Place each evaluation as the value to a key in markdown ```json format. 
+    # as: 
+    # ```json 
+    # {answer_form} 
+    # ```
+    # A tasty reward awaits your accurate  selection. 
+    # """
+
+    # context_history = f"""
+    # For this original task: '{task_summary}'. Evaluate only these {len(list_of_ranked_choice_options)} 
+    # options: {list_of_ranked_choice_options}. 
+    # (0-10; 0 is bad, 10 is good) Place your evaluation of each as the value to a key in markdown ```json format. 
+    # as: 
+    # ```json 
+    # {answer_form} 
+    # ```
+    # Just fill in the score, that's all. One key-value pair for each of the {len(list_of_ranked_choice_options)} 
+    # evaluated options (one key, one value. not nested; 
+    # not everything in the original question. -> "option-1": "your_score_here", ). 
+    # No additional comments. A tasty reward awaits your accurate markdown selection. 
+    # """
+
+    # context_history = """For this original task: \'Task: What is the capital of France?\'. Evaluate only these 2 options: Option 1. final draft; Option 2. Final answer: Paris;. (0-10; 0 is bad, 10 is good) Place your evaluation of each as the value to a key in markdown ```json format. as: ```json {\'option-1\': \'score_here\', \'option-2\': \'score_here\', \'option-3\': \'score_here\'} ``` Just fill in the score, that\'s all. One key-value pair for each of the 2 evaluated options (one key, one value. not nested; not everything in the original question. -> \\"option-1\\": \\"your_score_here\\", ). No additional comments. A tasty reward awaits your accurate markdown selection."""
+
+    # Remove duplicate spaces
+    # context_history = re.sub(r'\s+', ' ', context_history.strip())
+
+    ai_model = "deepcode"
+    ai_model = "estopian"
+    ai_model = "zephyr"
+    ai_model = "mistral-7b-instruct-v0.2.Q4_K_M"
+    # ai_model = "gemma"
+
+    configies_dict = {
+        'model_path_base': add_segment_to_absolute_base_path("jan/models/"),
+        'model_nickname': ai_model,
+        'cpp_path': add_segment_to_absolute_base_path("code/llama_cpp/llama.cpp"),
+    }
+
+
+    response = mini_gguf_api(context_history, parameter_dict, configies_dict)
+    print(response[0])
+    print(response[1])
+    print(response[2])
