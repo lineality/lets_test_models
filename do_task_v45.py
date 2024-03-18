@@ -5085,16 +5085,7 @@ def do_task_please(
                 ##########################
                 print("All done? Anyone here...hello? What was that? Is someone")
 
-
-
-"""# Tranlate Json Files
-- Set your language list
-- Pick your model
-- upload your json files
-- Run
-- Download / Get your translations (and inspection files if needed)
-"""
-
+# Option Notes
 ##########################################################
 # https://platform.openai.com/docs/guides/text-generation
 ##########################################################
@@ -5109,6 +5100,7 @@ gpt-3.5-turbo
 use_this_model = "gpt-4"
 use_this_model = "gpt-4-turbo-preview"
 use_this_model = "gpt-3.5-turbo"
+
 
 ######################
 # Mixtral 8x7 "Small"
@@ -5125,128 +5117,32 @@ use_this_model = "mistral-large-latest"
 ####################
 use_this_model = "mistral-tiny"
 
-################################################
-# Local Off-line Mode, or Online Cloud-api Mode
-################################################
-
-"""
-"cloud_api"
-
-"gguf"
-"""
 
 
-#######################
-# Tune Your Paramaters
-#######################
+
+###########################
+###########################
+# Choices & Configurations
+###########################
+###########################
+
+# Tune Your Paramaters for llama.cpp
 parameter_dict = {
-    "--temp": 0.8,  # (default value is 0.8)
-    "--top-k": 40,  # (selection among N most probable. default: 40)
-    "--top-p": 0.9,  # (probability above threshold P. default: 0.9)
-    "--min-p": 0.05,  # (minimum probability threshold. default: 0.05)
-    "--seed": -1,  # seed, =1 is random seed
-    "--tfs": 1,  # (tail free sampling with parameter z. default: 1.0) 1.0 = disabled
-    "--threads": 8,  # (~ set to number of physical CPU cores)
-    "--typical": 1,  # (locally typical sampling with parameter p  typical (also like ~Temperature) (default: 1.0, 1.0 = disabled).
-    "--mirostat": 2,  # (default: 0,  0= disabled, 1= Mirostat, 2= Mirostat 2.0)
+    "--temp": 0.8,          # (default value is 0.8)
+    "--top-k": 40,          # (selection among N most probable. default: 40)
+    "--top-p": 0.9,         # (probability above threshold P. default: 0.9)
+    "--min-p": 0.05,        # (minimum probability threshold. default: 0.05)
+    "--seed": -1,           # seed, =1 is random seed
+    "--tfs": 1,             # (tail free sampling with parameter z. default: 1.0) 1.0 = disabled
+    "--threads": 8,         # (~ set to number of physical CPU cores)
+    "--typical": 1,         # (locally typical sampling with parameter p  typical (also like ~Temperature) (default: 1.0, 1.0 = disabled).
+    "--mirostat": 2,        # (default: 0,  0= disabled, 1= Mirostat, 2= Mirostat 2.0)
     "--mirostat-lr": 0.05,  # (Mirostat learning rate, eta.  default: 0.1)
     "--mirostat-ent": 3.0,  # (Mirostat target entropy, tau.  default: 5.0)
-    "--ctx-size": 500,  # Sets the size of the prompt context
+    "--ctx-size": 500,      # Sets the size of the prompt context
 }
 
-
-
-ai_local_or_cloud_mode = "cloud_api"
-
-"""# Choices:"""
-
-# use_this_model = "gpt-3.5-turbo"
-# use_this_model = "mistral-large-latest"
-
-use_this_model = "mistral-7b-instruct"
-# use_this_model = "mistral-small"
-# use_this_model = "tinyllama"
-
-ai_local_or_cloud_mode = "gguf"
-
-# list_of_targeted_languages = ["Italian", "Spanish", "German", "Czech", "Arabic", "Hindi", "Portuguese", "French"]
-
-# list_of_targeted_languages = ["Italian", "Spanish", "German", "Czech", "Arabic", "Portuguese", "French", "Brazilian Portuguese"]
-
-list_of_targeted_languages = [
-    "Portuguese",
-    "French",
-    "Brazilian Portuguese",
-    "Czech",
-    "Arabic",
-]
-
-list_of_targeted_languages = ["French", "German",]
-
-# list_of_targeted_languages = ["French"]
-
-
-number_of_preliminary_drafts = 2
-number_of_ranked_votes = 1
-
-# mini_translate_json(
-#     list_of_targeted_languages,
-#     use_this_model,
-#     ai_local_or_cloud_mode,
-#     number_of_preliminary_drafts,
-#     number_of_ranked_votes,
-#     parameter_dict,
-# )
-
-# #############################
-# # Use model select + history
-# #############################
-# conversation_history = [
-#     {"role": "system", "content": "You are a friendly assistant."},
-#     {"role": "user", "content": "What seafood are we cooking now?"},
-# ]
-
-# # a local api function that acts like cloud api functions
-# response = gguf_api(conversation_history, parameter_dict, configies_dict)
-# print(response[0])
-# print(response[1])
-# print(response[2])
-
-
-
-list_of_models = ["tinyllama", "mistral-7b-instruct"]
-list_of_models = ["mistral-7b-instruct"]
-
-list_of_models = ["stablelm-zephyr-3b"]
-
-
-"""
-
-use these three items: to select the prompt:
-
-    task_mode_answer_option_choices_provided: True or False
-    output_structure_mode: "dict" or "pipes"
-    input_state_context_mode: "context_dict_list" or "one_string"
-
-
-prompt options:
-
-    dict_multiple_choice_solution_body_context 
-    pipes_multiple_choice_solution_body_context 
-
-    dict_multiple_choice_solution_body_nocontext 
-    pipes_multiple_choice_solution_body_nocontext 
-
-
-    dict_open_solution_body_context
-    pipes_open_solution_body_context
-
-    dict_open_solution_body_nocontext
-    pipes_open_solution_body_nocontext
-
-"""
-
-
+# Configure your task overall
 task_mode_configies = {
     "answer_option_choices_provided": True,
     "validate_the_answer": True,
@@ -5258,14 +5154,7 @@ task_mode_configies = {
     # "LMQL": False,
 }
 
-number_of_preliminary_drafts = 2
-number_of_ranked_votes = 1
-# file_type_list = ".jsonl"
-# task_field_name = 'task'
-# options_field_name = 'options'
-retry_x_times = 2
-
-
+# configure each task-file
 task_file_config_dic_list = [
     {
         "file_name": "my_test1.jsonl",
@@ -5296,17 +5185,41 @@ task_file_config_dic_list = [
     }
 ]
 
+#####################
+# High Level Choices
+#####################
+ai_local_or_cloud_mode = "gguf"
+number_of_preliminary_drafts = 2
+number_of_ranked_votes = 1
+retry_x_times = 2
 
-do_task_please(
-    list_of_models,
-    ai_local_or_cloud_mode,
-    number_of_preliminary_drafts,
-    retry_x_times,
-    number_of_ranked_votes,
-    task_mode_configies,
-    task_file_config_dic_list,
-    parameter_dict=parameter_dict,
-    models_dir_path="jan/models",
-)
+##############
+# Pick Models
+##############
+list_of_models = ["tinyllama", "mistral-7b-instruct", "stablelm-zephyr-3b"]
 
-score_tally("solution_files")
+
+######
+# Run
+######
+if __name__ == "__main__":
+
+    ##########
+    # Do Task
+    ##########
+    do_task_please(
+        list_of_models,
+        ai_local_or_cloud_mode,
+        number_of_preliminary_drafts,
+        retry_x_times,
+        number_of_ranked_votes,
+        task_mode_configies,
+        task_file_config_dic_list,
+        parameter_dict=parameter_dict,
+        models_dir_path="jan/models",
+    )
+
+    #####################
+    # Make a score tally
+    #####################
+    score_tally("solution_files")
