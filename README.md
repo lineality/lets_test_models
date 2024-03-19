@@ -1,5 +1,8 @@
 # lets_test_models
 
+Walkthrough and discussion here:
+https://medium.com/@GeoffreyGordonAshbrook/lets-test-models-and-let-s-do-tasks-84777f80eb99
+
 Preliminary tools for using llama.cpp e.g. selecting a model and using
 a local gguf model instead of a paid cloud api.
 
@@ -103,5 +106,4 @@ Translations will appear per language x per file in translations directory.
 ```python
 python call_llamacapp.py
 ```
-
 
