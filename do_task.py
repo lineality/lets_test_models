@@ -45,7 +45,7 @@ def make_answers_directory_and_csv_path(this_original_task_file, model_name):
     """
     Returns a list of .json files in the current working directory.
     """
-    solution_dir_path = "solution_files"
+    solution_dir_path = "task_set_results_files"
     date_time = datetime.now(UTC)
     clean_timestamp = date_time.strftime("%Y%m%d%H%M%S%f")
 
@@ -75,10 +75,10 @@ def make_answers_directory_and_csv_path(this_original_task_file, model_name):
     model_name_last_part = os.path.basename(model_name).replace('.', '_')  # Replacing dots to avoid file extension confusion
     original_task_file_last_part = os.path.basename(this_original_task_file).replace('.', '_')
 
-    answer_file_path = f"answer_file_{model_name_last_part}_{clean_timestamp}_{original_task_file_last_part}.csv" 
+    task_set_results_path = f"task_set_results_{model_name_last_part}_{clean_timestamp}_{original_task_file_last_part}.csv" 
 
     # Determine the path to the file that should be saved
-    answer_file_path = os.path.join(solution_dir_path, answer_file_path)
+    task_set_results_path = os.path.join(solution_dir_path, task_set_results_path)
 
     # TODO: 
     # 1. extract just the last part of {model_name}
@@ -87,15 +87,15 @@ def make_answers_directory_and_csv_path(this_original_task_file, model_name):
 
 
     # Create directories if they don't exist
-    os.makedirs(os.path.dirname(answer_file_path), exist_ok=True)
+    os.makedirs(os.path.dirname(task_set_results_path), exist_ok=True)
 
-    header_string = '"score", "this_row_or_line", "selected_option", "correct_option", "name_of_model", "this_original_task_file", "task_from_instructions", "question_task_prompt", "list_of_ranked_choice_options", "draft_task_attempt_log", "readable_timestamp"\n'
+    header_string = '"score","this_row_or_line","selected_option","correct_option","name_of_model","this_original_task_file","task_from_instructions","question_task_prompt","list_of_ranked_choice_options","draft_task_attempt_log","error_log","duration_of_single_task","readable_timestamp"\n'
 
     # Create an empty file (or just close it if it already exists)
-    with open(answer_file_path, 'a', newline='') as csvfile:
+    with open(task_set_results_path, 'a', newline='') as csvfile:
         csvfile.write(header_string)
 
-    return answer_file_path
+    return task_set_results_path
 
 
 def merge_answer_csv_files():
@@ -957,6 +957,7 @@ def extract_dictionaries_from_string_no_pips(input_string):
 
     return dictionaries
 
+
 # Helper Function
 def counter(timeout=10):
     count = 0
@@ -1370,7 +1371,7 @@ if you are not using openAI's web-api, these are commented out.
 
 
 # Helper Function
-def task_extract_markdown_json_to_dict(dict_str):
+def task_extract_markdown_json_to_dict(dict_str, error_log):
     """
     TODO or final_answer
 
@@ -1402,7 +1403,7 @@ def task_extract_markdown_json_to_dict(dict_str):
 
 
     # pre-check
-        # load
+    # load
     try:
         if "'" not in dict_str:
 
@@ -1430,7 +1431,7 @@ def task_extract_markdown_json_to_dict(dict_str):
 
             pattern = r'```json\n([\s\S]*?)\n```'
             match = re.search(pattern, dict_str)
-            dict_str =  match.group(1) if match else ''
+            dict_str = match.group(1) if match else ''
 
     except Exception as e:
         print(f"\nTRY AGAIN: check_function_description_keys() extraction from markdown failed: {e}")
@@ -1530,6 +1531,19 @@ def task_extract_markdown_json_to_dict(dict_str):
 
     # if ok...
     return dict_str
+
+
+def duration_min_sec(start_time, end_time):
+
+    duration = end_time - start_time
+
+    duration_seconds = duration.total_seconds()
+
+    minutes = int(duration_seconds // 60)
+    seconds = duration_seconds % 60
+    time_message = f"{minutes}_min__{seconds:.1f}_sec"
+
+    return time_message
 
 
 # Helper Function
@@ -1822,7 +1836,8 @@ def check_structure_of_response(dict_str):
 def task_check_structure_of_response(
         structured_output_format,
         dict_str,
-        task_mode_answer_option_choices_provided):
+        task_mode_answer_option_choices_provided,
+        error_log):
     """
     checking the structure of the response...depends on what the desired structure is.
     """
@@ -1893,7 +1908,7 @@ def task_check_structure_of_response(
         elif structured_output_format == "markdown_json":
 
             print(f"use context, structured_output_format -> {structured_output_format}")
-            response_to_task = task_extract_markdown_json_to_dict(dict_str)
+            response_to_task = task_extract_markdown_json_to_dict(dict_str, error_log)
 
             # inspection
             print(f"task_check_structure_of_response()  response_to_task -> {response_to_task}")
@@ -2099,7 +2114,7 @@ def score_tally(directory_path):
             report_list.append(report_line)
 
 
-        report_file_path = "solution_files/score_report.csv"
+        report_file_path = "task_set_results_files/score_report.csv"
 
         for report_line in report_list:
             print(report_line)
@@ -2458,6 +2473,7 @@ def general_task_call_api_within_structure_check(
     task_mode_output_structure_mode,
     draft_task_attempt_log,
     retry_x_times,
+    error_log,
 ):
     """
     task_mode_output_structure_mode is passed to the output structure checker
@@ -2561,7 +2577,8 @@ def general_task_call_api_within_structure_check(
         jsonchecked_translation = task_check_structure_of_response(
             task_mode_output_structure_mode, 
             dict_str, 
-            task_mode_answer_option_choices_provided)
+            task_mode_answer_option_choices_provided,
+            error_log)
 
         if jsonchecked_translation:
             json_ok_flag = True
@@ -4053,14 +4070,16 @@ def do_task_please(
         print(f"\n\n\n Now starting this_original_task_file -> {this_original_task_file}")
 
 
-
+        ############
+        # For Model
+        ############
         for use_this_model in list_of_models:
             ###
             # Make answers file pathway.
             ###
-            answer_file_path = make_answers_directory_and_csv_path(this_original_task_file, use_this_model)
+            task_set_results_path = make_answers_directory_and_csv_path(this_original_task_file, use_this_model)
 
-            print(f"answer_file_path -> {answer_file_path}")
+            print(f"task_set_results_path -> {task_set_results_path}")
 
 
             ########################
@@ -4100,9 +4119,20 @@ def do_task_please(
             print(f"this_original_task_file_length -> {this_original_task_file_length}")
 
 
+            ###3########################
+            ############################
+            # For this task in task-set
+            ############################
+            ############################
 
             # NON-header mode, skip first row
             for this_row_or_line in range(this_original_task_file_length):
+
+                # set start time
+                start_time_whole_single_task = datetime.now(UTC)
+
+                # start/reset error log
+                error_log = []
 
                 draft_task_attempt_log = []
 
@@ -4135,11 +4165,7 @@ def do_task_please(
 
                     "What is 2+2?", [4, 2^2, 2**2, 2*2, all of the above]
                     """
-
                     # row_as_list = extract_row_from_csv(this_row_or_line, this_original_task_file)
-
-
-
                     """
                     jsonl mode
 
@@ -4565,6 +4591,7 @@ def do_task_please(
                             task_mode_output_structure_mode,
                             draft_task_attempt_log,
                             retry_x_times,
+                            error_log,
                         )
 
                         # # remove overt duplicates
@@ -4822,6 +4849,7 @@ def do_task_please(
                                     # exit while loop if too many fails
                                     if task_fail_counter > retry_x_times:
                                         selected_option = None
+                                        error_log.append("task_fail_counter more than retry_x_times")
                                         break
 
                                     """
@@ -4871,12 +4899,14 @@ def do_task_please(
                                         else:  # if len of list is wrong
                                             while_counter += 1
                                             task_fail_counter += 1
+                                            error_log.append("length of list is wrong.")
                                             print("len of list is wrong")
                                             print(f"while_counter:{while_counter}, task_fail_counter:{task_fail_counter}")
 
                                     else:  # if no list at all!
                                         while_counter += 1
                                         task_fail_counter += 1
+                                        error_log.append("No select_best list.")
                                         print("no list at all!")
                                         print(f"while_counter:{while_counter}, task_fail_counter:{task_fail_counter}")
 
@@ -4958,8 +4988,17 @@ def do_task_please(
 
                     safe_task_from_instructions = replace_special_characters_with_text(this_task)
 
+                    error_log_safe_string = replace_special_characters_with_text(error_log)
+
                     just_model_file_name = os.path.basename(use_this_model)
                     just_this_original_task_file_name = os.path.basename(this_original_task_file)
+
+                    # set rnf time
+                    end_time_whole_single_task = datetime.now(UTC)
+
+                    duration_of_single_task = duration_min_sec(start_time_whole_single_task, end_time_whole_single_task)
+
+                    # turn into min, sec
 
 
                     list_of_items_to_write_to_csv = [
@@ -4973,6 +5012,8 @@ def do_task_please(
                         safe_question_task_prompt, 
                         list_of_ranked_choice_options, 
                         safe_task_attempt_log,
+                        error_log_safe_string,
+                        duration_of_single_task,
                         readable_timestamp,
                     ]
 
@@ -4984,16 +5025,16 @@ def do_task_please(
                     # answer_row = answer_row + "\n"
                     # print(f"\n\nanswer_row -> {answer_row}")
 
-                    # append to answer_file_path
+                    # append to task_set_results_path
 
                     # # Check if the file exists to determine if the header needs to be written
-                    # file_exists = os.path.exists(answer_file_path)
+                    # file_exists = os.path.exists(task_set_results_path)
 
-                    # with open(answer_file_path, 'a', newline='') as csvfile:
+                    # with open(task_set_results_path, 'a', newline='') as csvfile:
                     #     # Write the data row
                     #     csvfile.write(answer_row)
 
-                    append_list_of_values_to_csv(answer_file_path, list_of_items_to_write_to_csv)
+                    append_list_of_values_to_csv(task_set_results_path, list_of_items_to_write_to_csv)
 
                     # Exit While
                     print("\nHats in the air, we can all leave. Buubye!!\n\n\n")
@@ -5003,9 +5044,9 @@ def do_task_please(
 
 
                     # # Check if the file exists
-                    # if not os.path.exists(answer_file_path):
+                    # if not os.path.exists(task_set_results_path):
                     #     # If the file doesn't exist, create it with the header
-                    #     with open(answer_file_path, 'w', newline='') as csvfile:  # Use 'w' mode to write the header
+                    #     with open(task_set_results_path, 'w', newline='') as csvfile:  # Use 'w' mode to write the header
                     #         csvwriter = csv.writer(csvfile, delimiter=',')
                     #         header = ["this_row_or_line", "selected_option", "use_this_model", "this_original_task_file", "task_from_instructions", "question_task_prompt", "list_of_ranked_choice_options", "draft_task_attempt_log", "readable_timestamp"]
                     #         csvwriter.writerow(header)
@@ -5019,7 +5060,7 @@ def do_task_please(
                     # answer_row = [strip_newlines_and_spaces(str(item)) for item in answer_row]
 
                     # # Now, append this row to the CSV file
-                    # with open(answer_file_path, 'a', newline='') as csvfile:
+                    # with open(task_set_results_path, 'a', newline='') as csvfile:
                     #     csvwriter = csv.writer(csvfile, delimiter=',')
                     #     csvwriter.writerow(answer_row)
 
@@ -5040,11 +5081,11 @@ def do_task_please(
                     # answer_row = [strip_newlines_and_spaces(str(item)) for item in answer_row]
 
                     # # # Now, append this row to the CSV file
-                    # # with open(answer_file_path, 'a', newline='') as csvfile:
+                    # # with open(task_set_results_path, 'a', newline='') as csvfile:
                     # #     csvwriter = csv.writer(csvfile, delimiter=',')
                     # #     csvwriter.writerow(answer_row)
 
-                    # with open(answer_file_path, 'a', newline='') as csvfile:
+                    # with open(task_set_results_path, 'a', newline='') as csvfile:
                     #     csvfile.write(answer_row)
 
                     # nicely format some fields
@@ -5071,10 +5112,12 @@ def do_task_please(
                         safe_question_task_prompt, 
                         list_of_ranked_choice_options, 
                         safe_task_attempt_log,
+                        error_log_safe_string,
+                        duration_of_single_task,
                         readable_timestamp,
                     ]
 
-                    append_list_of_values_to_csv(answer_file_path, list_of_items_to_write_to_csv)
+                    append_list_of_values_to_csv(task_set_results_path, list_of_items_to_write_to_csv)
 
 
                     # Exit While
@@ -5132,7 +5175,7 @@ parameter_dict = {
     "--top-k": 40,          # (selection among N most probable. default: 40)
     "--top-p": 0.9,         # (probability above threshold P. default: 0.9)
     "--min-p": 0.05,        # (minimum probability threshold. default: 0.05)
-    "--seed": -1,           # seed,  -1 is a random seed
+    "--seed": -1,           # seed, -1 is a random seed
     "--tfs": 1,             # (tail free sampling with parameter z. default: 1.0) 1.0 = disabled
     "--threads": 8,         # (~ set to number of physical CPU cores)
     "--typical": 1,         # (locally typical sampling with parameter p  typical (also like ~Temperature) (default: 1.0, 1.0 = disabled).
@@ -5222,4 +5265,4 @@ if __name__ == "__main__":
     #####################
     # Make a score tally
     #####################
-    score_tally("solution_files")
+    score_tally("task_set_results_files")
