@@ -5132,7 +5132,7 @@ parameter_dict = {
     "--top-k": 40,          # (selection among N most probable. default: 40)
     "--top-p": 0.9,         # (probability above threshold P. default: 0.9)
     "--min-p": 0.05,        # (minimum probability threshold. default: 0.05)
-    "--seed": -1,           # seed, =1 is random seed
+    "--seed": -1,           # seed,  -1 is a random seed
     "--tfs": 1,             # (tail free sampling with parameter z. default: 1.0) 1.0 = disabled
     "--threads": 8,         # (~ set to number of physical CPU cores)
     "--typical": 1,         # (locally typical sampling with parameter p  typical (also like ~Temperature) (default: 1.0, 1.0 = disabled).
