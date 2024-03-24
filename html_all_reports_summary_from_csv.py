@@ -94,7 +94,7 @@ def make_html_report(target_csv_file_sources_dir, path_out):
 
 
 
-def report_on_all():
+def html_for_all_reports():
 
     date_time = datetime.now()
     clean_timestamp = date_time.strftime("%Y%m%d%H%M%S%f")
@@ -110,4 +110,4 @@ def report_on_all():
 ######
 if __name__ == "__main__":
 
-    report_on_all()
+    html_for_all_reports()
