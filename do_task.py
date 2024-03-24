@@ -1,16 +1,26 @@
 # -*- coding: utf-8 -*-
-"""
-TODO:
+import os
 
 """
+Uncomment for cloud mode
+"""
+# import requests
+# from dotenv import load_dotenv
+# load_dotenv()
+# openai_api_key = os.getenv("OPENAI_API_KEY")
+# mistral_api_key = os.getenv("mistral_api_key")
+
+
+"""
+Offline and Vanilla OK!
+"""
 import string
-import os
+
 import time
 import csv
 import sys
 from datetime import datetime, UTC
 import json  # Added missing import
-# import requests
 import re
 
 from call_llamacpp import gguf_api, mini_gguf_api
@@ -28,16 +38,16 @@ from html_tally_score import html_for_all_score_tallies
 # # mistral_api_key = 'xxx'
 # openai_api_key = userdata.get("open_ai_key")
 
-# from dotenv import load_dotenv
+
 
 """# make a list of json files"""
 # import openai
 # from google.colab import userdata
 
 # Load environment variables from .env file
-# load_dotenv()
-openai_api_key = os.getenv("OPENAI_API_KEY")
-mistral_api_key = os.getenv("mistral_api_key")
+
+
+
 
 
 def make_answers_directory_and_csv_path_header_string(
@@ -90,7 +100,7 @@ def make_answers_directory_and_csv_path_header_string(
     # Create directories if they don't exist
     os.makedirs(os.path.dirname(task_set_results_path), exist_ok=True)
 
-    header_string = '"score","this_row_or_line_number","selected_option","correct_option","task_failure_comment","name_of_model","this_original_task_file","task_from_instructions","question_task_prompt","list_of_ranked_choice_options","draft_task_attempt_log","error_log","duration_of_single_task","readable_timestamp"\n'
+    header_string = '"score","this_row_or_line_number","selected_option","correct_option","task_failure_comment","name_of_model","task_file","task_from_instructions","question_task_prompt","list_of_ranked_choice_options","draft_task_attempt_log","error_log","duration_of_single_task","readable_timestamp"\n'
 
     # Create an empty file (or just close it if it already exists)
     with open(task_set_results_path, "a", newline="") as csvfile:
@@ -165,7 +175,7 @@ def list_files_in_aitaskfiles_dir(file_type_list=None):
         # flattened_list
         output_list = [item for sublist in output_list for item in sublist]
 
-        print(output_list)
+        # print(output_list)
         if not output_list:
             message = f"\n\nExit Dungeon: Your file list in /{file_path}/ is empty, add a file and try!\n\n"
             sys.exit(message)
@@ -796,21 +806,7 @@ api async
 """
 
 
-# using google secretes
-# from google.colab import userdata
 
-# mistral_api_key = userdata.get("mistral_api_key")
-mistral_api_key = "xxx"
-
-# Define the endpoint URL
-endpoint_url = "https://api.mistral.ai/v1/chat/completions"
-
-# Set the headers
-headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-    "Authorization": f"Bearer {mistral_api_key}",
-}
 
 """
 # mode: [{"role": "user", "content": "say yes"}]
@@ -873,7 +869,7 @@ def segment_for_adding_to_context_history(role, comment):
 
 
 # Helper Function
-def add_to_context_history(user_input, context_history, role):
+def add_to_and_return_context_history(user_input, context_history, role):
 
     if role == "user":
         segment = {"role": "user", "content": user_input}
@@ -892,6 +888,7 @@ def add_to_context_history(user_input, context_history, role):
     context_history.append(segment)
 
     return context_history
+
 
 
 def find_matching_file_paths(file_paths, target_file_name):
@@ -1000,29 +997,12 @@ def replace_special_characters_with_text(input_item):
     return input_item
 
 
-# Helper Function
-def ask_mistral_model(context_history, use_this_model):
-    # Define the request body
-    request_body = {"model": use_this_model, "messages": context_history}
+"""
+Mistral
+"""
 
-    # pause if error occurs
-    counter(2)
 
-    #################
-    #################
-    # Hit the ai api
-    #################
-    #################
-    # Send the request
-    response = requests.post(endpoint_url, headers=headers, json=request_body)
-
-    # Check the response status code
-    if response.status_code != 200:
-        print(f"Error: {response.status_code} {response.text}")
-        return None
-
-        # pause if error occurs
-        counter(10)
+def print_rec_ai(response, context_history):
 
     # Get the response data
     response_data = response.json()
@@ -1067,20 +1047,350 @@ def ask_mistral_model(context_history, use_this_model):
     # print(type(output["choices"][0]))
 
     # extract just the 'what they said' part out
-    assistant_says = output["choices"][0]["message"]["content"]
+    assistant_says = output["choices"][0]['message']['content']
 
+    # print(assistant_says)
+
+    new_comment = {"role": "assistant", "content": assistant_says}
+
+    # add what assistant said to context history
+    context_history.append(new_comment)
+
+    return assistant_says, context_history
+
+def add_to_context_history(role, comment):
+
+    if role == 'user':
+        segment = {"role": "user", "content": comment}
+
+    elif role == 'assistant':
+        segment = {"role": "assistant", "content": comment}
+
+    elif role == 'system':
+        segment = {"role": "system", "content": comment}
+
+    else:
+        print("add_to_context_history(role, comment)")
+        print(role, comment)
+        print('error')
+
+    return segment
+
+
+def prompt_user(user_input, context_history):
+
+    context_history.append( add_to_context_history("user", user_input) )
+
+    return context_history
+
+
+def go_user(user_input, context_history, use_this_model):
+    """
+    Input: context_history
+    Ouput Tuple: assistant_says, context_history
+    """
+
+    # prompt user
+    context_history = prompt_user(user_input, context_history)
+
+    # prompt assistant
+    response = ask_mistral_api(context_history, use_this_model)
+
+    # ETL: Extract, Transform, & Load
+    assistant_says, context_history = print_rec_ai(response, context_history)
+
+    return assistant_says, context_history
+
+
+def ask_mistral_api(context_history, use_this_model):
+
+
+    # Define the endpoint URL
+    endpoint_url = "https://api.mistral.ai/v1/chat/completions"
+
+    # Set the headers
+    headers = {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": f"Bearer {mistral_api_key}"
+    }
+
+    # Define the request body
+    request_body = {
+      "model": use_this_model,
+      "messages": context_history
+    }
+
+    #################
+    #################
+    # Hit the ai api
+    #################
+    #################
+    # Send the request
+    response = requests.post(endpoint_url, headers=headers, json=request_body)
+
+    # Check the response status code
+    if response.status_code != 200:
+      raise Exception(f"Error: {response.status_code} {response.text}")
+
+    return response
+
+
+def simple_ask_mistral_cloud(input_string, use_this_model):
+    """
+    you have: a string
+    you need: a response
+
+    1. make minimal history contexxt
+    2. make a generic system instruction, for show
+    3. make system-user context: string input
+    4. ask mistral for that model
+    5. extract just the response string
+    6. return only reply (no 'history')
+    """
+
+    # 1. make minimal history contexxt
+    context_history = []
+
+    # 2. make a generic system instruction
+    generic_system_instruction = "You are helpful and answer accurately."
+    context_history.append( add_to_context_history("system", generic_system_instruction) )
+
+    # 3. make system-user context: string input
+    context_history.append( add_to_context_history("user", input_string) )
+
+    # 4. ask mistral for that model
+    response = ask_mistral_api(context_history, use_this_model)
+
+
+    # Get the response data
+    response_data = response.json()
+
+
+    # 5. extract just the response string
+
+    ##
+    ##
+    # Turn this print on to see full return data
+    ##
+    ##
+    """
+    e.g.
+    {
+      "id": "635cb8d445ujhe5546bb64e5e7",
+      "object": "chat.completion",
+      "created": 170hrjfjf7084,
+      "model": "mistral-tiny",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "Enjoy your cup of tea!"
+          },
+          "finish_reason": "stop",
+          "logprobs": null
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 575,
+        "total_tokens": 629,
+        "completion_tokens": 54
+      }
+    }
+    """
+    # print(json.dumps(response_data, indent=2))
+    # print(type(response_data))
+
+    output = response_data
+    # print(type(output))
+    # print(type(output["choices"][0]))
+
+    # extract just the 'what they said' part out
+    assistant_says = output["choices"][0]['message']['content']
+
+    # 6. return only reply (no 'history')
     return assistant_says
 
 
-"""
-# functions to call openAI api
+def strip_non_alpha(text):
+    # regex to leave only a-z characters
+    pattern = re.compile('[^a-z]')
+    return pattern.sub('', text).lower()
 
-There are a number of functions and versions of functions
-that can be used to call openAI's api, with many factors
-including rety, timeout, async, etc.
 
-To avoid requiring libary-package installs that are not needed
-if you are not using openAI's web-api, these are commented out.
+def keep_talking(context_history, use_this_model):
+    """
+    A very minimal chat with memory.
+
+    Uses:
+      query(input_string)
+      strip_non_alpha(text)
+    """
+    still_talking = True
+    dialogue_history = ""
+
+    while still_talking:
+
+        user_input = input("Say...")
+
+        exit_phrase_list = [
+            "exit",
+            "quit",
+            "quite",
+            "!q",
+            "q",
+            "done",
+            "finish",
+            "end",
+            "bye",
+            "good bye",
+        ]
+
+        # check if user is exiting convesation
+        if strip_non_alpha(user_input) in exit_phrase_list:
+            print("\nAll Done!")
+            break
+
+        else:
+            assistant_says, context_history = go_user(user_input, context_history, use_this_model)
+
+            print( assistant_says )
+
+            # save dialogue so far
+            dialogue_history = context_history
+
+    # when out of loop, return history
+    return dialogue_history
+
+
+# save history
+def record_history_save_files(dialogue_history):
+
+    date_time = dt.utcnow()
+    timestamp = date_time.strftime('%Y/%m/%d  %H:%M:%S:%f')
+    clean_timestamp = date_time.strftime('%Y%m%d%H%M')
+
+    # To save the data directly as a JSON file:
+
+    # Convert the Python dictionary list to a JSON string
+    json_data = json.dumps(dialogue_history)
+
+    # Open a file for writing in JSON format
+    with open(f'json_dialog_{clean_timestamp}.json', 'w') as json_file:
+        # Write the JSON string to the file
+        json_file.write(json_data)
+
+
+    # To save the data as a file readable as a script:
+
+    # Create a new file for writing
+    with open(f'script_dialog_{clean_timestamp}.txt', 'w') as script_file:
+
+        # add timestamp
+        text = timestamp + "\n\n"
+        script_file.write(text)
+
+        # Iterate over the dictionary list
+        for item in dialogue_history:
+            # Write the role and content of each item to the file, separated by a newline
+            script_file.write(f"{item['role']}: {item['content']}\n\n")
+
+
+# # Helper Function
+# def ask_mistral_model(context_history, use_this_model):
+
+#     # Define the endpoint URL
+#     endpoint_url = "https://api.mistral.ai/v1/chat/completions"
+
+#     # Set the headers
+#     headers = {
+#         "Content-Type": "application/json",
+#         "Accept": "application/json",
+#         "Authorization": f"Bearer {mistral_api_key}",
+#     }
+
+
+#     # Define the request body
+#     request_body = {"model": use_this_model, "messages": context_history}
+
+#     # pause if error occurs
+#     counter(2)
+
+#     #################
+#     #################
+#     # Hit the ai api
+#     #################
+#     #################
+#     # Send the request
+#     response = requests.post(endpoint_url, headers=headers, json=request_body)
+
+#     # Check the response status code
+#     if response.status_code != 200:
+#         print(f"Error: {response.status_code} {response.text}")
+#         return None
+
+#         # pause if error occurs
+#         counter(10)
+
+#     # Get the response data
+#     response_data = response.json()
+
+#     # Print the Mistral response
+
+#     ##
+#     ##
+#     # Turn this print on to see full return data
+#     ##
+#     ##
+#     """
+#     e.g.
+#     {
+#       "id": "635cb8d445ujhe5546bb64e5e7",
+#       "object": "chat.completion",
+#       "created": 170hrjfjf7084,
+#       "model": "mistral-tiny",
+#       "choices": [
+#         {
+#           "index": 0,
+#           "message": {
+#             "role": "assistant",
+#             "content": "Enjoy your cup of tea!"
+#           },
+#           "finish_reason": "stop",
+#           "logprobs": null
+#         }
+#       ],
+#       "usage": {
+#         "prompt_tokens": 575,
+#         "total_tokens": 629,
+#         "completion_tokens": 54
+#       }
+#     }
+#     """
+#     # print(json.dumps(response_data, indent=2))
+#     # print(type(response_data))
+
+#     output = response_data
+#     # print(type(output))
+#     # print(type(output["choices"][0]))
+
+#     # extract just the 'what they said' part out
+#     assistant_says = output["choices"][0]["message"]["content"]
+
+#     return assistant_says
+
+
+# """
+# # functions to call openAI api
+
+# There are a number of functions and versions of functions
+# that can be used to call openAI's api, with many factors
+# including rety, timeout, async, etc.
+
+# To avoid requiring libary-package installs that are not needed
+# if you are not using openAI's web-api, these are commented out.
+
 
 
 
@@ -2085,14 +2395,19 @@ def json_number_check_structure_of_response_to_list(dict_str) -> list:
     return number_list
 
 
-def score_tally(directory_path):
+def make_score_tally(directory_path):
+    """
+    Sorry, this is an attrocity that I will replace
+    with real code
+    as soon as I have time (so...maybe never)
+    """
     solution_dir_path = os.path.abspath(directory_path)
 
     # Ensure the directory exists
     os.makedirs(solution_dir_path, exist_ok=True)
 
     report_filename = os.path.join(solution_dir_path, "score_report.csv")
-    tally_header_string_list = ["percent", "model", "score", "time_stamp"]
+    tally_header_string_list = ["percent", "model", "score", "task_file", "time_stamp"]
 
     # # Check if the file exists and is empty to decide on writing the header
     if not os.path.exists(report_filename) or os.path.getsize(report_filename) == 0:
@@ -2104,7 +2419,7 @@ def score_tally(directory_path):
         )
 
     try:
-        model_scores = {}
+        report_data_dict = {}
         total_scores = 0
         # Iterate over CSV files and tally scores
         for filename in os.listdir(directory_path):
@@ -2127,22 +2442,27 @@ def score_tally(directory_path):
                                     f"name_of_model -> {model_name}"
                                 )  # Confirming model name retrieval
                                 score = int(row.get("score", 0))
-                                model_scores.setdefault(
-                                    model_name, {"total": 0, "count": 0}
+                                task_file = row.get("task_file", "")  # Get the task_file field
+                                report_data_dict.setdefault(
+                                    # model_name, {"total": 0, "count": 0}
+                                    model_name, {"total": 0, "count": 0, "task_files": []}
                                 )
-                                model_scores[model_name]["total"] += score
-                                model_scores[model_name]["count"] += 1
+                                report_data_dict[model_name]["total"] += score
+                                report_data_dict[model_name]["count"] += 1
+                                report_data_dict[model_name]["task_files"].append(task_file)  # Append task_file to the list
+
                                 total_scores += 1
 
         # Prepare report lines excluding the header https://stackoverflow.com/questions/2363731/how-to-append-a-new-row-to-an-old-csv-file-in-python
         report_list = []
-        for model_name, score_data in model_scores.items():
+        for model_name, score_data in report_data_dict.items():
             percentage = (
                 (score_data["total"] / total_scores) * 100 if total_scores > 0 else 0
             )
             # where total is correct number and count is...the total
             score = f"{score_data["total"]} / {score_data["count"]}"
-            report_line = [percentage, model_name, score]
+            task_files = ", ".join(score_data["task_files"])  # Join task_files into a comma-separated string
+            report_line = [percentage, model_name, task_files, score]
             report_list.append(report_line)
 
         for report_line in report_list:
@@ -2590,7 +2910,7 @@ def general_task_call_api_within_structure_check(
             ################
             elif use_this_model in mistal_model_list:
                 print(f"Mistral api selected...{use_this_model}")
-                dict_str = ask_mistral_model(context_history, use_this_model)
+                dict_str = simple_ask_mistral_cloud(context_history, use_this_model)
 
             elif use_this_model in open_ai_model_list:
                 print(f"openAI api selected...{use_this_model}")
@@ -2840,7 +3160,8 @@ def task_number_call_api_within_structure_check(
             ################
             elif use_this_model in mistal_model_list:
                 print(f"Mistral api selected...{use_this_model}")
-                dict_str = ask_mistral_model(context_history, use_this_model)
+                dict_str = simple_ask_mistral_cloud(context_history, use_this_model)
+
 
             elif use_this_model in open_ai_model_list:
                 print(f"openAI api selected...{use_this_model}")
@@ -4048,7 +4369,6 @@ def do_task_please(
     }
 
     """
-
     print_find_all_models(models_dir_path)
 
     # task mode items:
@@ -4113,7 +4433,7 @@ def do_task_please(
         raise "No task files were provided."
 
     # inspection
-    print(f"Task files in folder -> {task_files_list}")
+    print(f"\nTask set files in folder -> {task_files_list}")
 
     #############################
     # iterate task-set by config
@@ -4130,9 +4450,13 @@ def do_task_please(
         options_field_name = this_task_config_dict["options_field_name"]
         scoring_field_name = this_task_config_dict["scoring_field_name"]
 
-        error_comment_data_lookup_table_field_name = this_task_config_dict[
-            "error_comment_data_lookup_table_field_name"
-        ]
+        if "error_comment_data_lookup_table_field_name" in this_task_config_dict:
+            error_comment_data_lookup_table_field_name = this_task_config_dict[
+                "error_comment_data_lookup_table_field_name"
+            ]
+        else: 
+            error_comment_data_lookup_table_field_name = None
+
         this_offset = this_task_config_dict["this_offset"]
         this_range_inclusive = this_task_config_dict["this_range_inclusive"]
         use_offset_and_range = this_task_config_dict["use_offset_and_range"]
@@ -4255,8 +4579,6 @@ def do_task_please(
             print(f"start -> {start} {type(start)}")
             print(f"stop -> {stop} {type(stop)}")
 
-            # for this_row_or_line_number in range(this_original_task_file_length):
-            # for this_row_or_line_number in range(this_original_task_file_length):
             for this_row_or_line_number in range(start, stop + 1):
 
                 # set start time
@@ -5493,8 +5815,9 @@ task_file_config_dic_list = [
     #     "index_of_options": 1,
     #     "options_field_name": 'options',
     #     "scoring_field_name": 'answer_index_from_1',
-    #     "this_offset": None,
-    #     "this_range_inclusive": None,
+    #     "this_offset": 0,
+    #     "this_range_inclusive": 1,
+    #     "use_offset_and_range": True,
     # },
     # {
     #     "file_name": "my_test_open_answer_2.jsonl",
@@ -5512,8 +5835,9 @@ task_file_config_dic_list = [
     #     "output_structure_mode": "pipes",
     #     "input_state_context_mode": "one_string",
     #     "ranked_choice_output_structure_mode": "pipes",
-    #     "this_offset": None,
-    #     "this_range_inclusive": None,
+    #     "this_offset": 0,
+    #     "this_range_inclusive": 1,
+    #     "use_offset_and_range": True,
     # },
     # {
     #     "file_name": "error_explained_test_1.jsonl",
@@ -5534,9 +5858,10 @@ task_file_config_dic_list = [
     #     "output_structure_mode": "pipes",
     #     "input_state_context_mode": "one_string",
     #     "ranked_choice_output_structure_mode": "pipes",
-    #     "this_offset": None,
-    #     "this_range_inclusive": None,
-    # }
+    #     "this_offset": 0,
+    #     "this_range_inclusive": 1,
+    #     "use_offset_and_range": True,
+    # },
     {
         "file_name": "winograd_schemas_test_file.jsonl",
         "file_type": ".jsonl",
@@ -5556,18 +5881,41 @@ task_file_config_dic_list = [
         "output_structure_mode": "pipes",
         "input_state_context_mode": "one_string",
         "ranked_choice_output_structure_mode": "pipes",
-        "this_offset": 0,
-        "this_range_inclusive": 3,
+        "this_offset": 10,
+        "this_range_inclusive": 11,
         "use_offset_and_range": True,
-    }
-
-
+    },
+    # # Cloud
+    # {
+    #     "file_name": "error_explained_test_1.jsonl",
+    #     "file_type": ".jsonl",
+    #     "header_exits": False,
+    #     "file_structure": "",
+    #     "index_of_task": None,
+    #     "index_of_options": None,
+    #     # Fields
+    #     "task_field_name": "task",
+    #     "options_field_name": "options",
+    #     "scoring_field_name": "answer_from_index_start_at_1",
+    #     "error_comment_data_lookup_table_field_name": "error_comment_data_lookup_table",
+    #     "answer_option_choices_provided": True,
+    #     "validate_the_answer": True,
+    #     "use_history_context_dict_list": False,
+    #     "system_instructions": False,
+    #     "output_structure_mode": "pipes",
+    #     "input_state_context_mode": "one_string",
+    #     "ranked_choice_output_structure_mode": "pipes",
+    #     "this_offset": 1,
+    #     "this_range_inclusive": 2,
+    #     "use_offset_and_range": True,
+    # },
 ]
 
 #####################
-# High Level Choices
+# Whole Task Choices
 #####################
 ai_local_or_cloud_mode = "gguf"
+# ai_local_or_cloud_mode = "cloud"
 number_of_preliminary_drafts = 2
 number_of_ranked_votes = 1
 retry_x_times = 2
@@ -5575,13 +5923,35 @@ retry_x_times = 2
 ##############
 # Pick Models
 ##############
-list_of_models = ["tinyllama", "mistral-7b-instruct", "stablelm-zephyr-3b"]
-list_of_models = ["mistral-7b-instruct"]
+# list_of_models = ["mistral-tiny"]
+# list_of_models = ["tinyllama", "mistral-7b-instruct", "stablelm-zephyr-3b"]
+list_of_models = ["stable-zephyr-3b"]
+
+
+
 
 ######
 # Run
 ######
 if __name__ == "__main__":
+
+    message = f"""
+    These are the models you are slated to run,
+
+        list_of_models = {list_of_models}
+
+    You specify your list in the do_tasks.py file, at the bottom.
+
+    Do you wish to add another model? If so, type in a model name here...
+
+    """
+
+    # Ask user for model (for first time users' ease of starting perhaps)
+    add_this = input(message)
+
+    # add if there is anything to add
+    if len(add_this):
+        list_of_models.append(add_this)
 
     ##########
     # Do Task
@@ -5601,9 +5971,8 @@ if __name__ == "__main__":
     #####################
     # Make a score tally
     #####################
-    score_tally("task_set_results_files")
+    make_score_tally("task_set_results_files")
 
-
-# make html report
-html_for_all_reports()
-html_for_all_score_tallies()
+    # make html report
+    html_for_all_reports()
+    html_for_all_score_tallies()

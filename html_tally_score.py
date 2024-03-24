@@ -4,11 +4,14 @@ import glob
 import os
 from datetime import datetime
 
+
 def make_score_tally_html_report(target_csv_file_sources_dir, path_out):
     csv_files = glob.glob(os.path.join(target_csv_file_sources_dir, "*.csv"))
 
     # get files only that say 'score report'
     csv_files = [item for item in csv_files if "score_report" in item]
+
+    print(f"For this many tallieses: {len(csv_files)}")
 
 
     try:
@@ -31,6 +34,7 @@ def make_score_tally_html_report(target_csv_file_sources_dir, path_out):
                 <tr>
                     <th>Percent</th>
                     <th>Model</th>
+                    <th>Task File</th>
                     <th>Score</th>
                     <th>Timestamp</th>
                 </tr>
@@ -44,12 +48,14 @@ def make_score_tally_html_report(target_csv_file_sources_dir, path_out):
                             <tr>
                                 <td>{percent}</td>
                                 <td>{model}</td>
+                                <td>{task_file}</td>
                                 <td>{score}</td>
                                 <td>{time_stamp}</td>
                             </tr>
                         """.format(
                             percent=html.escape(row["percent"]),
                             model=html.escape(row["model"]),
+                            task_file=html.escape(row["task_file"]),
                             score=html.escape(row["score"]),
                             time_stamp=html.escape(row["time_stamp"]),
                         )

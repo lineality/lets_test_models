@@ -32,6 +32,7 @@ def make_html_report(target_csv_file_sources_dir, path_out):
                     <th>Correct Option</th>
                     <th>Task Failure Comment</th>
                     <th>Name of Model</th>
+                    <th>Task File</th>
                     <th>Task from Instructions</th>
                     <th>Error Log</th>
                     <th>Duration of Single Task</th>
@@ -51,6 +52,7 @@ def make_html_report(target_csv_file_sources_dir, path_out):
                                 <td>{correct_option}</td>
                                 <td>{task_failure_comment}</td>
                                 <td>{name_of_model}</td>
+                                <td>{task_file}</td>
                                 <td>{task_from_instructions}</td>
                                 <td>{error_log}</td>
                                 <td>{duration_of_single_task}</td>
@@ -66,6 +68,7 @@ def make_html_report(target_csv_file_sources_dir, path_out):
                             ),
                             # task_failure_comment="",
                             name_of_model=html.escape(row["name_of_model"]),
+                            task_file=html.escape(row["task_file"]),                            
                             task_from_instructions=html.escape(
                                 row["task_from_instructions"]
                             ),

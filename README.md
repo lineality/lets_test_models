@@ -1,3 +1,5 @@
+# cli_tools_for_llamacpp_in_python
+&
 # lets_test_models
 
 Walkthrough and discussion here:
@@ -7,6 +9,7 @@ Preliminary tools for using llama.cpp e.g. selecting a model and using
 a local gguf model instead of a paid cloud api.
 
 Also see dev area: 
+- https://github.com/stemnetbenchmarks/lets_test_models 
 - https://github.com/lineality/cli_tools_for_llamacpp_in_python  
 - https://github.com/lineality/STEM_Net_open_training_testing_benchmarks
 - https://github.com/lineality/object_relationship_spaces_ai_ml
@@ -107,3 +110,25 @@ Translations will appear per language x per file in translations directory.
 python call_llamacapp.py
 ```
 
+
+# For Cloudy API
+- Create a .env file
+1. Run:
+```python
+touch .env
+```
+- pip install the cloud version: requirements_cloud.txt
+
+2. Add this text, where you can put your real keys.
+```
+OPENAI_API_KEY = "xxx"
+mistral_api_key = "xxx"
+```
+
+3. Turn on cloud mode in configurations
+```
+ai_local_or_cloud_mode = "gguf"
+```
+
+4. uncomment the library installs for cloud
+(turned off for ease of gguf use without an env)
